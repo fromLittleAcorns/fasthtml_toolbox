@@ -4,7 +4,7 @@ from monsterui.all import *
 
 
 def create_login_form(error=None, action="/auth/login", redirect_to="/"):
-    """Create login form component"""
+    """Create login form component with consistent styling"""
     error_message = None
     if error == 'invalid':
         error_message = "Invalid username or password. Please try again."
@@ -44,7 +44,7 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/"):
                         Label(
                             Input(type="checkbox", name="remember_me"),
                             " Remember me",
-                            cls="flex items-center"
+                            cls="flex items-center text-sm"
                         ),
                         cls="mb-4"
                     ),
@@ -53,7 +53,7 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/"):
                     
                     Div(
                         A("Forgot password?", href="/auth/forgot", 
-                          cls="text-sm text-muted hover:underline"),
+                          cls="text-sm text-muted-foreground hover:underline"),
                         cls="text-center mt-4"
                     ),
                     
@@ -64,8 +64,9 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/"):
             footer=DivCentered(
                 P("Don't have an account? ", 
                   A("Register", href="/auth/register", cls="font-medium hover:underline"),
-                  cls=TextPresets.muted_sm)
-            ) if action != "/auth/register" else None,
+                  cls="text-sm text-muted-foreground"),
+                cls="p-4"
+            ),
             cls="w-full max-w-md shadow-lg"
         ),
         cls="min-h-screen flex items-center justify-center p-4"
@@ -121,7 +122,7 @@ def create_register_form(error=None, action="/auth/register"):
                         id="password",
                         name="password",
                         type="password",
-                        placeholder="Choose a strong password",
+                        placeholder="Choose a strong password (8+ characters)",
                         required=True,
                         minlength=8
                     ),
@@ -136,13 +137,10 @@ def create_register_form(error=None, action="/auth/register"):
                         minlength=8
                     ),
                     
-                    # Optional: Terms acceptance
                     Div(
                         Label(
                             Input(type="checkbox", name="accept_terms", required=True),
-                            " I accept the ",
-                            A("Terms and Conditions", href="/terms", target="_blank",
-                              cls="underline"),
+                            " I accept the Terms and Conditions",
                             cls="flex items-center text-sm"
                         ),
                         cls="mb-4"
@@ -157,7 +155,8 @@ def create_register_form(error=None, action="/auth/register"):
             footer=DivCentered(
                 P("Already have an account? ", 
                   A("Sign In", href="/auth/login", cls="font-medium hover:underline"),
-                  cls=TextPresets.muted_sm)
+                  cls="text-sm text-muted-foreground"),
+                cls="p-4"
             ),
             cls="w-full max-w-md shadow-lg"
         ),
@@ -202,10 +201,12 @@ def create_forgot_password_form(error=None, success=None, action="/auth/forgot")
                     
                     method="post",
                     action=action
-                ) if not success_message else None,
+                ) if not success_message else Div(
+                    P("Check your email for further instructions.", cls="text-center text-muted-foreground")
+                ),
                 
                 DivCentered(
-                    A("Return to Sign In", href="/auth/login", 
+                    A("← Back to Sign In", href="/auth/login", 
                       cls=(ButtonT.secondary, "mt-4"))
                 )
             ),
@@ -242,7 +243,7 @@ def create_reset_password_form(token, error=None, action="/auth/reset"):
                         id="password",
                         name="password",
                         type="password",
-                        placeholder="Enter new password",
+                        placeholder="Enter new password (8+ characters)",
                         required=True,
                         minlength=8,
                         autofocus=True
@@ -267,7 +268,8 @@ def create_reset_password_form(token, error=None, action="/auth/reset"):
             footer=DivCentered(
                 P("Remember your password? ", 
                   A("Sign In", href="/auth/login", cls="font-medium hover:underline"),
-                  cls=TextPresets.muted_sm)
+                  cls="text-sm text-muted-foreground"),
+                cls="p-4"
             ),
             cls="w-full max-w-md shadow-lg"
         ),
@@ -279,7 +281,7 @@ def create_profile_form(user, success=None, error=None, action="/auth/profile"):
     return Container(
         DivFullySpaced(
             H1("Profile Settings"),
-            A("← Back to Dashboard", href="/dashboard", cls=ButtonT.secondary)
+            A("← Back to Dashboard", href="/", cls=ButtonT.secondary)
         ),
         
         Grid(
@@ -295,7 +297,7 @@ def create_profile_form(user, success=None, error=None, action="/auth/profile"):
                                 "Username",
                                 value=user.username,
                                 disabled=True,
-                                cls="bg-gray-100"
+                                cls="bg-muted"
                             ),
                             LabelInput(
                                 "Email",
@@ -304,16 +306,18 @@ def create_profile_form(user, success=None, error=None, action="/auth/profile"):
                                 value=user.email,
                                 required=True
                             ),
-                            cols=2
+                            cols=1, cols_md=2
                         ),
                         
-                        H4("Change Password", cls="mt-6 mb-4 font-semibold"),
+                        Hr(cls="my-6"),
+                        
+                        H4("Change Password", cls="text-lg font-semibold mb-4"),
                         
                         LabelInput(
                             "Current Password",
                             name="current_password",
                             type="password",
-                            placeholder="Leave blank to keep current password"
+                            placeholder="Enter current password to change"
                         ),
                         
                         Grid(
@@ -321,15 +325,17 @@ def create_profile_form(user, success=None, error=None, action="/auth/profile"):
                                 "New Password",
                                 name="new_password",
                                 type="password",
-                                placeholder="Enter new password"
+                                placeholder="Enter new password (8+ chars)",
+                                minlength=8
                             ),
                             LabelInput(
                                 "Confirm New Password",
                                 name="confirm_password",
                                 type="password",
-                                placeholder="Confirm new password"
+                                placeholder="Confirm new password",
+                                minlength=8
                             ),
-                            cols=2
+                            cols=1, cols_md=2
                         ),
                         
                         DivRAligned(
@@ -350,8 +356,8 @@ def create_profile_form(user, success=None, error=None, action="/auth/profile"):
                         InfoRow("Username", user.username),
                         InfoRow("Role", user.role.title()),
                         InfoRow("Status", "Active" if user.active else "Inactive"),
-                        InfoRow("Member Since", user.created_at[:10]),
-                        InfoRow("Last Login", user.last_login[:10]),
+                        InfoRow("Member Since", user.created_at[:10] if user.created_at else "Unknown"),
+                        InfoRow("Last Login", user.last_login[:10] if user.last_login else "Never"),
                         cls="space-y-3"
                     )
                 )
@@ -363,8 +369,20 @@ def create_profile_form(user, success=None, error=None, action="/auth/profile"):
     )
 
 def InfoRow(label, value):
-    """Helper for info display"""
+    """Helper for info display in profile"""
     return DivFullySpaced(
         Span(label, cls="font-medium"),
-        Span(str(value), cls=TextPresets.muted_sm)
+        Span(str(value), cls="text-muted-foreground")
     )
+
+# Utility function for consistent error/success messaging
+def create_message_alert(message, type="info"):
+    """Create consistent alert messages"""
+    alert_class = {
+        "error": AlertT.error,
+        "success": AlertT.success,
+        "warning": AlertT.warning,
+        "info": AlertT.info
+    }.get(type, AlertT.info)
+    
+    return Alert(message, cls=alert_class)

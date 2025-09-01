@@ -34,8 +34,10 @@ class AuthRoutes:
         @rt(f"{prefix}/login", methods=["GET"])
         def login_page(req):
             error = req.query_params.get('error')
+            # Get redirect destination from query params
+            redirect_to = req.query_params.get('redirect_to', '/')
             return Title("Login"), Container(
-                create_login_form(error=error, action=f"{prefix}/login")
+                create_login_form(error=error, action=f"{prefix}/login", redirect_to=redirect_to)
             )
         self.routes['login_page'] = login_page
         
@@ -54,10 +56,15 @@ class AuthRoutes:
                 sess['role'] = user.role
                 
                 # Redirect to next URL or default
-                next_url = form.get('next', '/')
-                return RedirectResponse(next_url, status_code=303)
-            
-            return RedirectResponse(f"{prefix}/login?error=invalid", status_code=303)
+                redirect_url = form.get('redirect_to', '/')
+                return RedirectResponse(redirect_url, status_code=303)
+            # On failure, preserve the redirect_to parameter
+            redirect_to = form.get('redirect_to', '/')
+            error_url = f"{prefix}/login?error=invalid"
+            if redirect_to != '/':
+                error_url += f"&redirect_to={redirect_to}"
+            return RedirectResponse(error_url, status_code=303)            
+        
         self.routes['login_submit'] = login_submit
         
     def _register_logout_route(self, rt, prefix):
@@ -89,20 +96,27 @@ class AuthRoutes:
                 # Validation
                 if password != confirm:
                     return RedirectResponse(f"{prefix}/register?error=password_mismatch", status_code=303)
+
+                if password != confirm:
+                    return RedirectResponse(f"{prefix}/register?error=password_mismatch", status_code=303)
                 
                 # Check if user exists
                 if self.auth.user_repo.get_by_username(username):
                     return RedirectResponse(f"{prefix}/register?error=username_taken", status_code=303)
                 
                 # Create user
-                user = self.auth.user_repo.create(username, email, password)
-                if user:
-                    # Auto-login after registration
-                    sess['auth'] = user.username
-                    sess['user_id'] = user.id
-                    sess['role'] = user.role
-                    return RedirectResponse('/', status_code=303)
-                
+                try:
+                    user = self.auth.user_repo.create(username, email, password)
+                    if user:
+                        # Auto-login after registration
+                        sess['auth'] = user.username
+                        sess['user_id'] = user.id
+                        sess['role'] = user.role
+                        return RedirectResponse('/', status_code=303)
+                except Exception as e:
+                    print(f"Registration error: {e}")
+                    return RedirectResponse(f"{prefix}/register?error=creation_failed", status_code=303)
+                       
                 return RedirectResponse(f"{prefix}/register?error=creation_failed", status_code=303)
             
             self.routes['register_page'] = register_page
@@ -121,8 +135,18 @@ class AuthRoutes:
                     action=f"{prefix}/forgot"
                 )
             
+            @rt(f"{prefix}/forgot", methods=["POST"])
+            async def forgot_submit(req):
+                form = await req.form()
+                email = form.get('email', '').strip()
+                
+                # TODO: Implement actual password reset logic
+                # For now, just show success message
+                return RedirectResponse(f"{prefix}/forgot?success=sent", status_code=303)
+            
             self.routes['forgot_password'] = forgot_page
-
+            self.routes['forgot_submit'] = forgot_submit
+        
     def _register_profile_route(self, rt, prefix):
         # Register route to a profile form
         @rt(f"{prefix}/profile", methods=["GET"])
@@ -136,3 +160,44 @@ class AuthRoutes:
                 error=error,
                 action=f"{prefix}/profile"
             )
+        
+        @rt(f"{prefix}/profile", methods=["POST"])
+        async def profile_submit(req):
+            user = req.scope['user']
+            form = await req.form()
+            
+            try:
+                # Update email if changed
+                new_email = form.get('email', '').strip()
+                if new_email and new_email != user.email:
+                    self.auth.user_repo.update(user.id, email=new_email)
+                
+                # Handle password change
+                current_password = form.get('current_password', '')
+                new_password = form.get('new_password', '')
+                confirm_password = form.get('confirm_password', '')
+                
+                if current_password or new_password:
+                    if not current_password:
+                        return RedirectResponse(f"{prefix}/profile?error=Current password required", status_code=303)
+                    
+                    if not self.auth.user_repo.verify_password(current_password, user.password):
+                        return RedirectResponse(f"{prefix}/profile?error=Invalid current password", status_code=303)
+                    
+                    if new_password != confirm_password:
+                        return RedirectResponse(f"{prefix}/profile?error=New passwords do not match", status_code=303)
+                    
+                    if len(new_password) < 8:
+                        return RedirectResponse(f"{prefix}/profile?error=Password must be at least 8 characters", status_code=303)
+                    
+                    # Update password (repository will handle hashing)
+                    self.auth.user_repo.update(user.id, password=new_password)
+                
+                return RedirectResponse(f"{prefix}/profile?success=1", status_code=303)
+                
+            except Exception as e:
+                print(f"Profile update error: {e}")
+                return RedirectResponse(f"{prefix}/profile?error=Update failed", status_code=303)
+        
+        self.routes['profile_page'] = profile_page
+        self.routes['profile_submit'] = profile_submit

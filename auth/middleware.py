@@ -66,9 +66,10 @@ class AuthBeforeware:
 
         # Auth routes
         skip.extend([
-            f'{self.login_path}', 
-            f'{self.config.get("register_path", "auth/register")}',
-            f'{self.config.get("forgot_path", "auth/forgot")}'
+            '/auth/login', 
+            '/auth/register',
+            '/auth/forgot',
+            '/auth/reset'
         ])
 
         # Configured public paths

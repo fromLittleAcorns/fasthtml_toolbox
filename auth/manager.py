@@ -11,8 +11,12 @@ class AuthManager:
     modular to enable easy re-use
 
     Methods:
-        register_routes: 
-        get_route_handler: 
+        initialize: Initialize the auth system and database
+        create_beforeware: Create authentication middleware  
+        register_routes: Register authentication routes
+        require_role: Decorator for role-based access control
+        require_admin: Decorator for admin-only access
+        get_user: Get user by username 
 
     """
     def __init__(self, db_path="data/app.db", config=None):
@@ -38,7 +42,7 @@ class AuthManager:
         return self.db
     
     def create_beforeware(self, additional_public_paths=None):
-        self.middleware.create_beforeware(additional_public_paths)
+        return self.middleware.create_beforeware(additional_public_paths)
 
     def require_role(self, *roles):
         """Get role requirement decorator"""
