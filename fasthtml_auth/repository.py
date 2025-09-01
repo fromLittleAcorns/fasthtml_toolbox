@@ -77,6 +77,11 @@ class UserRepository:
     def update(self, user_id: int, **kwargs) -> bool:
         """Update user fields using fastlite kwargs approach"""
         try:
+            # Hash password if being updated                    # <- NEW
+            if 'password' in kwargs and kwargs['password']:     # <- NEW
+                if not User.is_hashed(kwargs['password']):      # <- NEW
+                    kwargs['password'] = User.get_hashed_password(kwargs['password'])  # <- NEW
+            
             # Include the primary key in the update kwargs
             self.users.update(id=user_id, **kwargs)
             return True
@@ -94,3 +99,7 @@ class UserRepository:
         except Exception as e:
             print(f"Error listing users: {e}")
             return []
+        
+    def verify_password(self, password: str, hashed: str) -> bool:
+        """Verify password against hash - delegates to User class"""
+        return User.verify_password(password, hashed)
