@@ -6,10 +6,10 @@ from datetime import datetime
 
 @dataclass
 class User:
-    id: Optional[int]
-    username: str
-    email: str
-    password: str
+    id: int|None = None
+    username: str|None = None
+    email: str|None = None
+    password: str|None = None
     role: str = "user"
     created_at: str = ""
     last_login: str = ""
@@ -21,7 +21,9 @@ class User:
     @classmethod
     def get_hashed_password(cls, password: str) -> str:
         """Hash a password using bcrypt"""
-        try:            
+        try:
+            if not password:
+                raise ValueError("Password cannot be empty")          
             # Use bcrypt directly instead of passlib to avoid version issues
             salt = bcrypt.gensalt()
             hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
@@ -33,34 +35,34 @@ class User:
     @classmethod
     def is_hashed(cls, pwd: str) -> bool:
         """Check if password is already hashed (bcrypt hashes start with $2b$)"""
-        return pwd.startswith('$2b$') and len(pwd) == 60
+        return pwd and pwd.startswith('$2b$') and len(pwd) == 60
         
     @classmethod
     def verify_password(cls, pwd: str, hashed: str) -> bool:
         """Verify password against hash"""
         try:
+            if not pwd or not hashed: 
+                return False
             return bcrypt.checkpw(pwd.encode('utf-8'), hashed.encode('utf-8'))
         except Exception as e:
             print(f"Error verifying password: {e}")
             return False
     
     def __post_init__(self):
-        # Ensure the password is hashed, if not hash it
         """Initialize timestamps and hash password if needed"""
         # Hash password if not already hashed
         if self.password and not self.is_hashed(self.password):
             print(f"Hashing password for user: {self.username}")
             self.password = self.get_hashed_password(self.password)
-        """Initialize timestamps if not set"""
+
+        # Initialize timestamps if not set
         now = datetime.now().isoformat()
         if not self.created_at:
             self.created_at = now
         if not self.last_login:
             self.last_login = now
-
-        print(f"User after post_init: {self.id, self.username, self.last_login}")
-
     
+
 @dataclass
 class Session:
     """Pure Session model"""
@@ -71,4 +73,4 @@ class Session:
     created_at: str
 
     # Define primary key for fastlite
-    __pk__ = 'id'
+    pk = 'id'

@@ -1,3 +1,6 @@
+## 8. .gitignore (Updated)
+
+```gitignore
 # Python
 __pycache__/
 *.py[cod]
@@ -25,10 +28,6 @@ MANIFEST
 # PyInstaller
 *.manifest
 *.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -83,3 +82,8 @@ tmp/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Packaging
+dist/
+build/
+*.egg-info/

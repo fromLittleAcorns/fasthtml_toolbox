@@ -1,6 +1,6 @@
 from fasthtml.common import *
 from monsterui.all import *
-from auth import AuthManager
+from fasthtml_auth import AuthManager
 
 css_links = [
     Link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css"),

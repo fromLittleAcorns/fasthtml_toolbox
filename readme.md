@@ -4,6 +4,11 @@ A comprehensive, drop-in authentication system for FastHTML applications with be
 
 This repro is intended to simplify the process of setting up a authentiation, user management and database setup for fastHTML apps.  Some of the code is based upon examples from Answer.ai code base, and for more information about fastHTML see [fastHTML](https://www.fastht.ml)
 
+## Installation
+
+```bash
+pip install fasthtml-auth
+
 ## Features
 
 - 🔐 **Secure Authentication** - Bcrypt password hashing, session management
@@ -22,7 +27,7 @@ This repro is intended to simplify the process of setting up a authentiation, us
 pip install fasthtml-auth
 ```
 
-### Basic Setup
+### Quick Start
 
 ```python
 from fasthtml.common import *

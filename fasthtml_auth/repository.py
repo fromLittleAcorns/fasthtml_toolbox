@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from .models import User
+from fasthtml_auth.models import User
 
 class UserRepository:
     """Handles all database operations for users"""
@@ -29,6 +29,10 @@ class UserRepository:
         try:
             user_found = self.users("username=?", (username,))
             if len(user_found) == 1:
+                if isinstance(user_found[0], User):
+                    return user_found[0]
+                else:
+                    return self._dict_to_user(user_found[0])
                 return user_found[0]  # Return the single user object
             elif len(user_found) == 0:
                 return None
@@ -60,7 +64,11 @@ class UserRepository:
             created_at="",
             last_login=""
         )
-        return self.users.insert(user)
+        inserted_user = self.users.insert(user)
+        if isinstance(inserted_user, dict):
+            return self._dict_to_user(inserted_user)
+        else:
+            return inserted_user
     
     def authenticate(self, username: str, password: str) -> Optional[User]:
         """Authenticate user and update last_login"""

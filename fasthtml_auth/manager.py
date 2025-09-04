@@ -5,6 +5,7 @@ from .middleware import AuthBeforeware
 from .database import AuthDatabase
 from .repository import UserRepository
 from .routes import AuthRoutes
+from .models import User
 
 class AuthManager:
     """ A class to manage user authentication and route access for fasthtml apps.  Intended to be
@@ -38,6 +39,10 @@ class AuthManager:
 
         # Create default admin
         self._create_default_admin()
+
+        admin = self.get_user('admin')
+        (f"Admin User class: {type(admin)}")
+        print(f"Are they the same class? {type(admin) is User}")    
         
         return self.db
     

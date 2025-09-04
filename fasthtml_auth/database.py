@@ -18,15 +18,15 @@ class AuthDatabase:
         self.audit_log = None  # Optional security audit
     
     def initialize_auth_tables(self):
-        """Initialize core auth tables"""
         from .models import User, Session
         
-        # Users table (note fastlite will create the table if it does not exist, otherwise will return the current table)
+        # Force User to be fully processed as a dataclass
+        import dataclasses
+        if not dataclasses.is_dataclass(User):
+            raise Exception("User is not a proper dataclass!")
+        
         self.users = self.db.create(User, pk=User.pk)
 
-        # Sessions table
-        self.sessions = self.db.create(Session)
-        
         return self.db
     
     def get_db(self):
