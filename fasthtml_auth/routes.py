@@ -46,18 +46,37 @@ class AuthRoutes:
             form = await req.form()
             username = form.get('username', '').strip()
             password = form.get('password', '')
+            remember_me = form.get('remember_me') == 'on'
             
             # Authenticate
             user = self.auth.user_repo.authenticate(username, password)
+
             if user:
                 # Set session
                 sess['auth'] = user.username
                 sess['user_id'] = user.id
                 sess['role'] = user.role
-                
-                # Redirect to next URL or default
+
                 redirect_url = form.get('redirect_to', '/')
-                return RedirectResponse(redirect_url, status_code=303)
+                response = RedirectResponse(redirect_url, status_code=303)
+
+                if remember_me:
+                    # Set a long-lived cookie (30 days)
+                    response.set_cookie(
+                        key='remember_user',
+                        value=user.username,
+                        max_age=30*24*60*60,  # 30 days in seconds
+                        httponly=True,
+                        samesite='strict'
+                    )
+                    sess['remember_me'] = True
+                else:
+                    # Remove remember me cookie if it exists
+                    response.delete_cookie('remember_user')
+                    sess.pop('remember_me', None)
+
+                return response
+
             # On failure, preserve the redirect_to parameter
             redirect_to = form.get('redirect_to', '/')
             error_url = f"{prefix}/login?error=invalid"

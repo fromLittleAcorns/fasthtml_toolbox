@@ -42,9 +42,9 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/"):
                     
                     Div(
                         Label(
-                            Input(type="checkbox", name="remember_me"),
-                            " Remember me",
-                            cls="flex items-center text-sm"
+                            CheckboxX(name="remember_me", selected=False),
+                            Span(" Remember me", cls="ml-2"),
+                            cls="flex items-center text-sm cursor-pointer"
                         ),
                         cls="mb-4"
                     ),
@@ -139,9 +139,9 @@ def create_register_form(error=None, action="/auth/register"):
                     
                     Div(
                         Label(
-                            Input(type="checkbox", name="accept_terms", required=True),
-                            " I accept the Terms and Conditions",
-                            cls="flex items-center text-sm"
+                            CheckboxX(name="accept_terms", selected=False, required=True),
+                            Span(" I accept the Terms and Conditions", cls="ml-2"),
+                            cls="flex items-center text-sm cursor-pointer"
                         ),
                         cls="mb-4"
                     ),

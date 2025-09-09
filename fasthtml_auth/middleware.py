@@ -35,6 +35,23 @@ class AuthBeforeware:
             """Check authentication prior to check"""
             auth_username = sess.get('auth')
 
+            # If no session auth, check for remember me cookie
+            if not auth_username:
+                remember_user = req.cookies.get('remember_user')
+                if remember_user:
+                    # Verify user still exists and is active
+                    user = self.auth_manager.get_user(remember_user)
+                    if user and user.active:
+                        # Restore session from remember me cookie
+                        sess['auth'] = user.username
+                        sess['user_id'] = user.id
+                        sess['role'] = user.role
+                        sess['remember_me'] = True
+                        auth_username = user.username
+                    else:
+                        # Invalid remember me cookie, continue to redirect
+                        pass
+
             if not auth_username:
                 # No auth, redirect to login
                 return RedirectResponse(self.login_path, status_code=303)

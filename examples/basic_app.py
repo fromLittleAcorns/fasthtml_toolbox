@@ -117,13 +117,13 @@ def admin_panel(req):
                     " ",
                     Button("System Settings", cls=ButtonT.secondary, disabled=True),
                     " ",
-                    Button("View Logs", cls=ButtonT.outline, disabled=True),
+                    Button("View Logs", cls=ButtonT.secondary, disabled=True),
                     cls="mt-4"
                 ),
                 P("(These buttons are disabled in demo)", cls="text-sm text-muted-foreground mt-2")
             )
         ),
-        cls=ContainerT.md
+        cls=ContainerT.lg
     )
 
 # Test manager route
@@ -151,7 +151,7 @@ def manager_view(req, *args, **kwargs):
                 P("(These buttons are disabled in demo)", cls="text-sm text-muted-foreground mt-2")
             )
         ),
-        cls=ContainerT.md
+        cls=ContainerT.lg
     )
 
 # Public route for testing
@@ -180,7 +180,7 @@ def about():
                 )
             )
         ),
-        cls=ContainerT.md
+        cls=ContainerT.lg
     )
 
 # Contact page - another public route
@@ -199,7 +199,7 @@ def contact():
                 P("Phone: (555) 123-4567")
             )
         ),
-        cls=ContainerT.md
+        cls=ContainerT.lg
     )
 
 if __name__ == "__main__":
