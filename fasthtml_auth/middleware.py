@@ -1,4 +1,5 @@
 from fasthtml.common import *
+import inspect
 from typing import Optional, List
 
 class AuthBeforeware:
@@ -98,7 +99,13 @@ class AuthBeforeware:
                 user = req.scope.get('user')
                 if not user or user.role not in allowed_roles:
                     return Response("Forbidden", status_code=403)
-                return func(req, *args, **kwargs)
+                
+                # Check if function accepts extra args
+                sig = inspect.signature(func)
+                if len(sig.parameters) == 1:  # Only takes req
+                    return func(req)
+                else:
+                    return func(req, *args, **kwargs)
             return wrapper
         return decorator
 
