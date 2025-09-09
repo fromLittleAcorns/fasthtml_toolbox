@@ -111,6 +111,10 @@ class AuthRoutes:
                 email = form.get('email', '').strip()
                 password = form.get('password', '')
                 confirm = form.get('confirm_password', '')
+                accept_terms = form.get('accept_terms') == 'on'
+
+                if not accept_terms:
+                    return RedirectResponse(f"{prefix}/register?error=terms_required", status_code=303)
                 
                 # Validation
                 if password != confirm:

@@ -87,6 +87,8 @@ def create_register_form(error=None, action="/auth/register"):
         error_message = "Please enter a valid email address."
     elif error == 'creation_failed':
         error_message = "Failed to create account. Please try again."
+    elif error == 'terms_required':  # NEW ERROR MESSAGE
+        error_message = "You must accept the Terms and Conditions to register."
     
     return DivCentered(
         Card(

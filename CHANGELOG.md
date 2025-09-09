@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-09-03
+
+### Added
+- Implemented "Remember me" functionality with extended session duration
+- Added session expiry handling for persistent logins
+- Server-side validation for "Accept Terms" checkbox in registration
+- Clear error message when terms are not accepted
+
+
+### Fixed
+- "Remember me" checkbox now actually remembers users for 30 days
+- "Checkbox for accept terms in the register form has been corrected so that it displays correctly
+- Registration now properly validates terms acceptance
+- Sorted out some styling issues with the admin forms in basic_app.py
+
+
 ## [0.1.1] - 2025-09-09
 
 ### Fixed

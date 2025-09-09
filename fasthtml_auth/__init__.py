@@ -5,7 +5,7 @@ Provides user authentication, session management, role-based access control,
 and beautiful UI components out of the box.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __author__ = "John Richmond"
 __email__ = "confusedjohn46@gmail.com"
 
