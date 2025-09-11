@@ -1,7 +1,8 @@
 # auth/routes.py
 from fasthtml.common import *
-from .forms import create_login_form, create_register_form, create_forgot_password_form, create_profile_form
+from monsterui.all import *
 
+from .forms import create_login_form, create_register_form, create_forgot_password_form, create_profile_form
 
 class AuthRoutes:
     """Handles route registration for auth system"""
@@ -10,9 +11,15 @@ class AuthRoutes:
         self.auth = auth_manager
         self.routes = {}
     
-    def register_all(self, app, prefix="/auth"):
-        """Register all auth routes"""
+    def register_all(self, app, prefix="/auth", include_admin=False):
+        """Register all auth routes with optional admin interface"""
         rt = app.route
+        
+        # Handle success/error messages for admin operations
+        if include_admin:
+            # Import AdminRoutes only when needed
+            from .admin_routes import AdminRoutes
+            admin_handler = AdminRoutes(self.auth)
         
         # Register each route group
         self._register_login_routes(rt, prefix)
@@ -24,8 +31,129 @@ class AuthRoutes:
         
         if self.auth.config.get('allow_password_reset'):
             self._register_password_reset_routes(rt, prefix)
+        
+        # Register admin routes if requested
+        if include_admin:
+            admin_routes = admin_handler.register_admin_routes(app, f"{prefix}/admin")
+            self.routes.update(admin_routes)
+            
+            # Add admin dashboard route
+            @rt(f"{prefix}/admin")
+            @self.auth.require_admin()
+            def admin_dashboard(req):
 
-        return self.routes
+                # Get user statistics
+                user_counts = self.auth.user_repo.count_by_role()
+                total_users = sum(user_counts.values())
+                
+                return Title("Admin Dashboard"), Container(
+                    DivFullySpaced(
+                        H1("Admin Dashboard"),
+                        A("← Back to Main Dashboard", href="/", cls=ButtonT.secondary)
+                    ),
+                    
+                    Grid(
+                        Card(
+                            CardHeader(H3("Total Users")),
+                            CardBody(
+                                H2(str(total_users), cls="text-3xl font-bold"),
+                                P("Registered users", cls="text-muted-foreground")
+                            )
+                        ),
+                        Card(
+                            CardHeader(H3("Admins")),
+                            CardBody(
+                                H2(str(user_counts.get('admin', 0)), cls="text-3xl font-bold text-purple-600"),
+                                P("Admin accounts", cls="text-muted-foreground")
+                            )
+                        ),
+                        Card(
+                            CardHeader(H3("Managers")),
+                            CardBody(
+                                H2(str(user_counts.get('manager', 0)), cls="text-3xl font-bold text-blue-600"),
+                                P("Manager accounts", cls="text-muted-foreground")
+                            )
+                        ),
+                        Card(
+                            CardHeader(H3("Users")),
+                            CardBody(
+                                H2(str(user_counts.get('user', 0)), cls="text-3xl font-bold text-gray-600"),
+                                P("Regular users", cls="text-muted-foreground")
+                            )
+                        ),
+                        cols=1, cols_md=2, cols_lg=4
+                    ),
+                    
+                    Card(
+                        CardHeader(H3("Quick Actions")),
+                        CardBody(
+                            Grid(
+                                A("Manage Users", href=f"{prefix}/admin/users", cls=ButtonT.primary),
+                                A("Create New User", href=f"{prefix}/admin/users/create", cls=ButtonT.secondary),
+                                A("View Profile", href=f"{prefix}/profile", cls=ButtonT.secondary),
+                                A("System Settings", href="#", cls=ButtonT.secondary + " opacity-50 cursor-not-allowed"),
+                                cols=2, cols_md=4
+                            )
+                        ),
+                        cls="mt-6"
+                    ),
+                    
+                    cls=ContainerT.xl
+                )
+            
+            self.routes['admin_dashboard'] = admin_dashboard
+
+            # Update the user list route to show success/error messages
+            original_list = self.routes.get('admin_users_list')
+            if original_list:
+                @rt(f"{prefix}/admin/users")
+                @self.auth.require_admin()
+                def admin_users_list_with_messages(req):
+                    from .forms import create_message_alert
+                    
+                    # Check for success/error messages
+                    success = req.query_params.get('success')
+                    error = req.query_params.get('error')
+                    
+                    success_messages = {
+                        'created': "User created successfully!",
+                        'updated': "User updated successfully!",
+                        'deleted': "User deleted successfully!"
+                    }
+                    
+                    error_messages = {
+                        'user_not_found': "User not found.",
+                        'cannot_delete_self': "You cannot delete your own account.",
+                        'delete_failed': "Failed to delete user.",
+                        'update_failed': "Failed to update user."
+                    }
+                    
+                    # Get the original response
+                    original_response = original_list(req)
+                    
+                    # If there's a message, add it to the response
+                    if success or error:
+                        message = None
+                        if success:
+                            message = create_message_alert(success_messages.get(success), "success")
+                        elif error:
+                            message = create_message_alert(error_messages.get(error), "error")
+                        
+                        # Insert message after the header
+                        if message and hasattr(original_response, '__iter__'):
+                            response_list = list(original_response)
+                            # Find Container and insert message after header
+                            for i, item in enumerate(response_list):
+                                if hasattr(item, 'children'):
+                                    children = list(item.children)
+                                    children.insert(1, message)  # Insert after header
+                                    item.children = children
+                                    break
+                            return tuple(response_list)
+                    
+                    return original_response
+                
+                self.routes['admin_users_list'] = admin_users_list_with_messages
     
     def _register_login_routes(self, rt, prefix):
         """Register login routes"""

@@ -1,6 +1,6 @@
 from fasthtml.common import *
 import inspect
-from typing import Optional, List
+from typing import Optional, List, Any, Callable
 
 class AuthBeforeware:
     """Authentication middleware for fastHTML"""
@@ -108,11 +108,15 @@ class AuthBeforeware:
     def require_admin(self):
         """Decorator for paths requiting admin role to access"""
         return self.require_role('admin')
-    
+
+    from typing import Any
+    import functools
+
     def require_role(self, *allowed_roles):
         """Decorator to require a specific role"""
         def decorator(func):
-            def wrapper(req, *args, **kwargs):
+            @functools.wraps(func)  # ← Copy original function signature
+            def wrapper(req, *args: Any, **kwargs: Any):  # ← Add type annotations
                 user = req.scope.get('user')
                 if not user or user.role not in allowed_roles:
                     return Response("Forbidden", status_code=403)

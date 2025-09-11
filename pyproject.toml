@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fasthtml-auth"
-version = "0.1.2"
+version = "0.2.0"
 description = "Complete authentication system for FastHTML applications with beautiful UI, role-based access control, and session management"
 readme = "README.md"
 license = {file = "LICENSE"}

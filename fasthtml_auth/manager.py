@@ -60,9 +60,29 @@ class AuthManager:
     def get_user(self, username: str):
         return self.user_repo.get_by_username(username)
     
-    def register_routes(self, app, prefix='/auth'):
-        """Delegate to route handler"""
-        return self.route_handler.register_all(app, prefix)
+    def register_routes(self, app, prefix='/auth', include_admin=False):
+        """
+        Register authentication routes with optional admin interface
+        
+        Args:
+            app: FastHTML application instance
+            prefix: URL prefix for auth routes (default: /auth)
+            include_admin: Enable admin user management interface (default: False)
+                - Adds /auth/admin dashboard
+                - Adds /auth/admin/users for user management
+                - Adds CRUD operations for users
+        
+        Returns:
+            Dictionary of registered routes
+        
+        Example:
+            # Basic auth without admin interface
+            auth.register_routes(app)
+            
+            # Include admin interface for user management
+            auth.register_routes(app, include_admin=True)
+        """
+        return self.route_handler.register_all(app, prefix, include_admin=include_admin)
     
     # Create default admin
     def _create_default_admin(self):

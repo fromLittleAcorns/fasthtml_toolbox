@@ -96,7 +96,93 @@ class UserRepository:
         except Exception as e:
             print(f"Error updating user {user_id}: {e}")
             return False
+        
+    def delete(self, user_id: int) -> bool:
+        """Delete a user by ID"""
+        try:
+            # First check if user exists
+            user = self.get_by_id(user_id)
+            if not user:
+                print(f"User with id {user_id} not found")
+                return False
+            
+            # Prevent deletion of last admin
+            if user.role == 'admin':
+                admin_count = self.count_by_role().get('admin', 0)
+                if admin_count <= 1:
+                    print("Cannot delete the last admin user")
+                    return False
+            
+            # Delete using the primary key value directly
+            self.users.delete(user_id)
+            return True
+                
+        except Exception as e:
+            print(f"Error deleting user {user_id}: {e}")
+            return False
+
+    def delete_by_username(self, username: str) -> bool:
+        """Delete a user by username - more practical for admin interfaces"""
+        try:
+            # Get the user to get their ID
+            user = self.get_by_username(username)
+            if not user:
+                print(f"User '{username}' not found")
+                return False
+            
+            # Prevent deletion of last admin
+            if user.role == 'admin':
+                admin_count = self.count_by_role().get('admin', 0)
+                if admin_count <= 1:
+                    print("Cannot delete the last admin user")
+                    return False
+            
+            # Delete using the user's ID
+            self.users.delete(user.id)
+            return True
+        except Exception as e:
+            print(f"Error deleting user '{username}': {e}")
+            return False
+        
+
+    def count_by_role(self) -> dict:
+        """Get count of users by role"""
+        try:
+            users = self.list_all()
+            counts = {'user': 0, 'manager': 0, 'admin': 0}
+            for user in users:
+                if user.role in counts:
+                    counts[user.role] += 1
+            return counts
+        except Exception as e:
+            print(f"Error counting users by role: {e}")
+            return {'user': 0, 'manager': 0, 'admin': 0}
     
+    def search_users(self, query: str, role: Optional[str] = None, active: Optional[bool] = None) -> list:
+        """Search users with optional filters"""
+        try:
+            users = self.list_all()
+            
+            # Apply search filter
+            if query:
+                query_lower = query.lower()
+                users = [u for u in users if 
+                        query_lower in u.username.lower() or 
+                        query_lower in u.email.lower()]
+            
+            # Apply role filter
+            if role:
+                users = [u for u in users if u.role == role]
+            
+            # Apply active filter
+            if active is not None:
+                users = [u for u in users if u.active == active]
+            
+            return users
+        except Exception as e:
+            print(f"Error searching users: {e}")
+            return []
+
     def list_all(self) -> list[User]:
         """Get all users"""
         try:

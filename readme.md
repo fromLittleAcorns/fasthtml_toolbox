@@ -1,117 +1,144 @@
 # FastHTML-Auth
 
-A comprehensive, drop-in authentication system for FastHTML applications with beautiful UI components, session management, and role-based access control.
+**Complete authentication system for FastHTML applications with built-in admin interface**
 
-This repro is intended to simplify the process of setting up a authentiation, user management and database setup for fastHTML apps.  Some of the code is based upon examples from Answer.ai code base, and for more information about fastHTML see [fastHTML](https://www.fastht.ml)
-
-## Installation
-
-```bash
-pip install fasthtml-auth
-
-## Features
-
-- 🔐 **Secure Authentication** - Bcrypt password hashing, session management
-- 👤 **User Management** - Registration, profile management, role-based access
-- 🎨 **Beautiful UI** - Styled with MonsterUI components, fully responsive
-- 🛡️ **Role-Based Access Control** - User, Manager, Admin roles with decorators
-- 🔄 **Session Management** - Automatic session handling with FastHTML
-- 📱 **Mobile Friendly** - Responsive design works on all devices
-- ⚡ **Easy Integration** - Drop-in solution with minimal setup required
-
-## Quick Start
-
-### Installation
+Drop-in authentication with beautiful UI, role-based access control, and a powerful admin dashboard for user management. No configuration required – just install and go!
 
 ```bash
 pip install fasthtml-auth
 ```
 
-### Quick Start
+[![PyPI version](https://badge.fury.io/py/fasthtml-auth.svg)](https://badge.fury.io/py/fasthtml-auth)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
+---
+
+## ⭐ Key Features
+
+- 🔐 **Complete Authentication** - Login, logout, registration with secure bcrypt hashing
+- 👑 **Built-in Admin Interface** - Full user management dashboard (NEW!)
+- 🎨 **Beautiful UI** - Responsive MonsterUI components, zero custom CSS needed
+- 🛡️ **Role-Based Access** - User, Manager, Admin roles with decorators
+- 📱 **Mobile Ready** - Works perfectly on all devices
+- ⚡ **Zero Config** - Works out of the box, customize as needed
+
+---
+
+## 🚀 Quick Start
+
+### Basic Authentication
 
 ```python
 from fasthtml.common import *
 from monsterui.all import *
 from fasthtml_auth import AuthManager
 
-# Initialize authentication system
-auth = AuthManager(
-    db_path="data/app.db",
-    config={
-        'allow_registration': True,
-        'public_paths': ['/about', '/contact']
-    }
-)
-
-# Set up database and middleware
+# Initialize auth system
+auth = AuthManager(db_path="data/app.db")
 db = auth.initialize()
 beforeware = auth.create_beforeware()
 
-# Create FastHTML app with authentication
-app = FastHTML(
-    before=beforeware,
-    secret_key='your-secret-key-change-in-production',
-    hdrs=Theme.blue.headers()  # MonsterUI styling
-)
-
-# Register authentication routes
+# Create app
+app = FastHTML(before=beforeware, hdrs=Theme.blue.headers())
 auth.register_routes(app)
 
-# Your protected routes
 @app.route("/")
 def dashboard(req):
     user = req.scope['user']  # Automatically available
-    return Title("Dashboard"), H1(f"Welcome, {user.username}!")
+    return H1(f"Welcome, {user.username}!")
 
 @app.route("/admin")
 @auth.require_admin()
-def admin_panel(req):
-    return Title("Admin"), H1("Admin Only Area")
+def admin_only(req):
+    return H1("Admin Area")
 
-if __name__ == "__main__":
-    serve(port=5000)
+serve()
 ```
 
-That's it! Your app now has:
+**That's it!** Your app now has:
 - Login/logout at `/auth/login` and `/auth/logout`
-- User registration at `/auth/register` 
+- User registration at `/auth/register`
 - Profile management at `/auth/profile`
 - Role-based access control
-- Beautiful, responsive forms
+- Default admin account: `admin` / `admin123`
 
-## Configuration
+---
+
+## 👑 Built-in Admin Interface
+
+Enable powerful user management with one parameter:
+
+```python
+# Add this one parameter to get a complete admin dashboard
+auth.register_routes(app, include_admin=True)
+```
+
+**Instantly adds:**
+
+| Feature | Route | Description |
+|---------|-------|-------------|
+| 📊 **Admin Dashboard** | `/auth/admin` | User statistics and quick actions |
+| 👥 **User Management** | `/auth/admin/users` | List, search, filter all users |
+| ➕ **Create Users** | `/auth/admin/users/create` | Add users with role assignment |
+| ✏️ **Edit Users** | `/auth/admin/users/{id}/edit` | Modify details, roles, status |
+| 🗑️ **Delete Users** | `/auth/admin/users/{id}/delete` | Remove users (with protection) |
+
+### Admin Interface Features
+
+- **🔍 Search & Filter** - Find users by username, email, role, or status
+- **📄 Pagination** - Handle thousands of users efficiently  
+- **🛡️ Safety Features** - Prevent self-deletion and last admin removal
+- **📊 Statistics Dashboard** - User counts by role and status
+- **🎨 Beautiful UI** - Consistent MonsterUI design throughout
+
+---
+
+## 📖 Real-World Example
+
+See **FastHTML-Auth** in action with a complete todo application:
+
+**[📝 FastHTML Todo App](https://github.com/fromLittleAcorns/fasthtml_todo)**
+
+This real-world example shows:
+- User authentication and registration
+- Role-based task management
+- Admin interface for user management
+- Database integration patterns
+- Production deployment setup
+
+---
+
+## ⚙️ Configuration
 
 ```python
 config = {
-    'login_path': '/auth/login',           # Custom login URL
-    'public_paths': ['/about', '/api'],    # Routes that don't require auth
-    'allow_registration': True,            # Enable user registration
-    'allow_password_reset': False,         # Enable password reset (coming soon)
+    'allow_registration': True,              # Enable user registration
+    'public_paths': ['/about', '/api'],      # Routes that skip authentication  
+    'login_path': '/auth/login',             # Custom login URL
 }
 
 auth = AuthManager(db_path="data/app.db", config=config)
 ```
 
-## User Roles and Access Control
+## 🔐 Role-Based Access Control
 
-### Available Roles
-- **user** - Basic authenticated user
-- **manager** - Manager privileges + user access  
-- **admin** - Full system access
+### Built-in Roles
+- **`user`** - Basic authenticated access
+- **`manager`** - Manager privileges + user access
+- **`admin`** - Full system access + admin interface
 
-### Role-Based Route Protection
-
+### Route Protection
 ```python
 # Require specific roles
 @app.route("/manager-area")
 @auth.require_role('manager', 'admin')
-def manager_view(req, *args, **kwargs):
+def manager_view(req):
     return H1("Manager+ Only")
 
-# Admin only shortcut
+# Admin only (shortcut)
 @app.route("/admin")
 @auth.require_admin()
-def admin_panel(req, *args, **kwargs):
+def admin_panel(req):
     return H1("Admin Only")
 
 # Check roles in templates
@@ -119,15 +146,13 @@ def admin_panel(req, *args, **kwargs):
 def dashboard(req):
     user = req.scope['user']
     
-    admin_link = A("Admin Panel", href="/admin") if user.role == 'admin' else None
-    manager_link = A("Manager Area", href="/manager") if user.role in ['manager', 'admin'] else None
-    
-    return Div(admin_link, manager_link)
+    admin_link = A("Admin Panel", href="/auth/admin") if user.role == 'admin' else None
+    return Div(admin_link)
 ```
 
-## User Object
+## 📊 User Object
 
-In protected routes, `req.scope['user']` contains:
+In protected routes, access user data via `req.scope['user']`:
 
 ```python
 user.id          # Unique user ID  
@@ -139,207 +164,113 @@ user.created_at  # Account creation timestamp
 user.last_login  # Last login timestamp
 ```
 
-## Database Schema
+## 🎨 Styling & Themes
 
-FastHTML-Auth automatically creates these tables:
-
-```sql
--- Users table
-CREATE TABLE user (
-   id INTEGER PRIMARY KEY,
-   username TEXT UNIQUE NOT NULL,
-   email TEXT UNIQUE NOT NULL, 
-   password TEXT NOT NULL,        -- Bcrypt hashed
-   role TEXT DEFAULT 'user',
-   created_at TEXT,
-   last_login TEXT,
-   active INTEGER DEFAULT 1
-);
-
--- Sessions table (for future use)
-CREATE TABLE session (
-   id TEXT PRIMARY KEY,
-   user_id INTEGER,
-   data TEXT,
-   expires_at TEXT,
-   created_at TEXT
-);
-```
-
-## Styling and Themes
-
-FastHTML-Auth uses [MonsterUI](https://github.com/pixeltable/monster-ui) for beautiful, consistent styling.
+FastHTML-Auth uses [MonsterUI](https://github.com/answerdotai/monsterui) for beautiful, responsive components:
 
 ```python
 # Choose your theme
 app = FastHTML(
     before=beforeware,
-    hdrs=Theme.blue.headers()    # or Theme.red, Theme.green, etc.
+    hdrs=Theme.blue.headers()    # or red, green, slate, etc.
 )
 ```
 
-All forms include:
-- Responsive card-based layouts
-- Professional input styling  
-- Clear error/success messages
-- Loading states and validation
-- Mobile-optimized design
+All forms include professional styling, validation, error handling, and mobile optimization.
 
-## API Reference
+## 🛠️ API Reference
 
 ### AuthManager
-
 ```python
-class AuthManager:
-    def __init__(self, db_path="data/app.db", config=None)
-    def initialize(self) -> Database
-    def create_beforeware(self, additional_public_paths=None) -> Beforeware
-    def register_routes(self, app, prefix="/auth") -> Dict
-    def require_role(self, *roles) -> Decorator
-    def require_admin(self) -> Decorator
-    def get_user(self, username: str) -> Optional[User]
+auth = AuthManager(db_path="data/app.db", config={})
+auth.initialize()                                    # Set up database
+auth.register_routes(app, include_admin=True)        # Add all routes
+auth.create_beforeware()                             # Create middleware
+
+@auth.require_admin()                                # Admin-only decorator
+@auth.require_role('manager', 'admin')               # Role-based decorator
 ```
 
-### Default Admin Account
+### Available Routes
 
-A default admin account is created automatically:
-- **Username**: `admin`  
-- **Password**: `admin123`
-- **Role**: `admin`
+**Authentication Routes:**
+- `GET/POST /auth/login` - User login
+- `GET /auth/logout` - Logout and redirect  
+- `GET/POST /auth/register` - User registration
+- `GET/POST /auth/profile` - Profile management
 
-⚠️ **Change this password in production!**
+**Admin Routes** (when `include_admin=True`):
+- `GET /auth/admin` - Admin dashboard
+- `GET /auth/admin/users` - User management
+- `GET/POST /auth/admin/users/create` - Create user
+- `GET/POST /auth/admin/users/{id}/edit` - Edit user
+- `GET/POST /auth/admin/users/{id}/delete` - Delete user
 
-## Available Routes
+## 📁 Examples
 
-FastHTML-Auth automatically registers these routes:
+For complete examples, see the `/examples` directory:
 
-- `GET /auth/login` - Login form
-- `POST /auth/login` - Login submission  
-- `GET /auth/logout` - Logout and redirect
-- `GET /auth/register` - Registration form (if enabled)
-- `POST /auth/register` - Registration submission (if enabled)
-- `GET /auth/profile` - User profile management
-- `POST /auth/profile` - Profile update submission
+- [`basic_app.py`](examples/basic_app.py) - Simple authentication setup
+- [`example_with_admin.py`](examples/example_with_admin.py) - Full admin interface demo
+- [**FastHTML Todo App**](https://github.com/fromLittleAcorns/fasthtml_todo) - Real-world application
 
-## Examples
+## 🔒 Security Features
 
-### Complete Example App
+- **Bcrypt password hashing** - Industry standard security
+- **Session management** - Secure session handling with FastHTML
+- **Remember me functionality** - Optional persistent sessions
+- **Role-based protection** - Automatic route access control
+- **Admin safety** - Prevent self-deletion and last admin removal
+- **Input validation** - Server-side validation for all forms
 
-```python
-from fasthtml.common import *
-from monsterui.all import *
-from fasthtml_auth import AuthManager
-
-# Initialize auth
-auth = AuthManager(
-    db_path="data/myapp.db",
-    config={
-        'allow_registration': True,
-        'public_paths': ['/about', '/pricing', '/contact']
-    }
-)
-
-db = auth.initialize()
-beforeware = auth.create_beforeware()
-
-app = FastHTML(
-    before=beforeware,
-    secret_key='super-secret-change-me',
-    hdrs=Theme.blue.headers()
-)
-
-auth.register_routes(app)
-
-# Public landing page
-@app.route("/")
-def home(req):
-    user = req.scope.get('user')  # None if not logged in
-    
-    if user:
-        return RedirectResponse('/dashboard')
-    
-    return Title("Welcome"), Container(
-        H1("My Awesome App"),
-        P("Please login to continue"),
-        A("Login", href="/auth/login", cls=ButtonT.primary),
-        A("Sign Up", href="/auth/register", cls=ButtonT.secondary)
-    )
-
-# Protected dashboard
-@app.route("/dashboard")  
-def dashboard(req, *args, **kwargs):
-    user = req.scope['user']
-    
-    return Title("Dashboard"), Container(
-        H1(f"Welcome back, {user.username}!"),
-        
-        # Role-specific content
-        Card(
-            CardHeader("Your Account"),
-            CardBody(
-                P(f"Role: {user.role.title()}"),
-                P(f"Member since: {user.created_at[:10]}"),
-                A("Edit Profile", href="/auth/profile", cls=ButtonT.primary)
-            )
-        ) if user.role == 'user' else None,
-        
-        # Manager content
-        Card(
-            CardHeader("Management Tools"),
-            CardBody(
-                A("View Reports", href="/reports", cls=ButtonT.primary),
-                A("Manage Users", href="/users", cls=ButtonT.secondary)
-            )
-        ) if user.role in ['manager', 'admin'] else None
-    )
-
-if __name__ == "__main__":
-    serve(port=5000)
-```
-
-## Dependencies
-
-- `fasthtml` - Web framework
-- `monsterui` - UI components
-- `fastlite` - Database ORM
-- `bcrypt` - Password hashing
-
-## Development
+## 📦 Installation & Dependencies
 
 ```bash
-# Clone the repository
-git clone https://github.com/fromlittleacorns/fasthtml-auth.git
-cd fasthtml-auth
-
-# Install development dependencies
-pip install -e .[dev]
-
-# Run tests
-python -m pytest
-
-# Run example
-python examples/complete_app.py
+pip install fasthtml-auth
 ```
 
-## Contributing
+**Dependencies:**
+- `python-fasthtml>=0.12.0` - Web framework
+- `monsterui>=1.0.20` - UI components  
+- `fastlite>=0.2.0` - Database ORM
+- `bcrypt>=4.0.0` - Password hashing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+## 🤝 Contributing
 
-## License
+We welcome contributions! Areas for contribution:
+
+- Password reset functionality
+- Two-factor authentication  
+- OAuth integration (Google, GitHub)
+- Email verification
+- Bulk user operations
+- Custom user fields
+
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Changelog
+## 📝 Changelog
+
+### v0.2.0 (Current Release)
+- ✅ Built-in admin interface for user management
+- ✅ User CRUD operations with beautiful UI
+- ✅ Dashboard with user statistics
+- ✅ Search, filter, and pagination
+- ✅ Safety features for admin operations
+
+### v0.1.2
+- ✅ "Remember me" functionality
+- ✅ Terms acceptance validation
+- ✅ Improved form styling
 
 ### v0.1.0
-- Initial release
-- Basic authentication system
-- MonsterUI integration
-- Role-based access control
-- User registration and profiles
+- ✅ Initial release with core authentication
+- ✅ Role-based access control
+- ✅ MonsterUI integration
 
 ---
 
 **FastHTML-Auth** - Authentication made simple for FastHTML applications.
 
-For more examples and documentation, visit: [https://github.com/fromlittleacorns/fasthtml-auth](https://github.com/fromlittleacorns/fasthtml-auth)
+For questions and support: [GitHub Issues](https://github.com/fromlittleacorns/fasthtml-auth/issues)
