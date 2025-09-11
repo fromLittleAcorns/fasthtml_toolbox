@@ -1,6 +1,7 @@
 # auth/admin_routes.py
 from fasthtml.common import *
 from monsterui.all import *
+import math  # For pagination calculations
 from .forms import create_message_alert
 from typing import Optional
 import math
@@ -13,55 +14,28 @@ class AdminRoutes:
         self.routes = {}
         
     def register_admin_routes(self, app, prefix="/auth/admin"):
-        """Register all admin routes"""
+        """
+        Register all admin routes with proper async handling
+        
+        IMPORTANT: Async route handlers are defined outside the class method because
+        FastHTML has issues with async functions defined inside class methods. The async
+        functions don't get properly awaited when defined inline, causing "coroutine never
+        awaited" RuntimeWarnings and function objects being returned instead of executed.
+        
+        Solution: Define async handlers as local functions outside the class method scope,
+        then register them with the router. This allows FastHTML to properly handle the
+        async/await lifecycle.
+        """
         rt = app.route
         
-        # User list with pagination and search
-        @rt(f"{prefix}/users")
-        @self.auth.require_admin()
-        def admin_users_list(req):
-            # Get query parameters
-            page = int(req.query_params.get('page', 1))
-            per_page = int(req.query_params.get('per_page', 10))
-            search = req.query_params.get('search', '')
-            role_filter = req.query_params.get('role', '')
-            status_filter = req.query_params.get('status', '')
-            
-            # Get all users
-            all_users = self.auth.user_repo.list_all()
-            
-            # Apply filters
-            filtered_users = self._filter_users(all_users, search, role_filter, status_filter)
-            
-            # Calculate pagination
-            total_users = len(filtered_users)
-            total_pages = math.ceil(total_users / per_page)
-            start = (page - 1) * per_page
-            end = start + per_page
-            users_page = filtered_users[start:end]
-            
-            return Title("User Management"), Container(
-                self._create_user_list_header(),
-                self._create_filters_section(search, role_filter, status_filter, prefix),
-                self._create_users_table(users_page, prefix),
-                self._create_pagination(page, total_pages, req.url.path, req.query_params),
-                cls=ContainerT.xl
-            )
+        # Store reference to auth manager for use in route handlers
+        auth_manager = self.auth
         
-        # Create new user form
-        @rt(f"{prefix}/users/create", methods=["GET"])
-        @self.auth.require_admin()
-        def admin_user_create_form(req):
-            error = req.query_params.get('error')
-            return Title("Create User"), Container(
-                self._create_user_form(action=f"{prefix}/users/create", error=error, prefix=prefix),
-                cls=ContainerT.lg
-            )
+        # === ASYNC HANDLERS DEFINED OUTSIDE CLASS METHOD ===
+        # These must be defined here (not as class methods) for FastHTML async support
         
-        # Create new user submission
-        @rt(f"{prefix}/users/create", methods=["POST"])
-        @self.auth.require_admin()
-        async def admin_user_create_submit(req):
+        async def handle_user_create(req):
+            """Handle user creation form submission"""
             form = await req.form()
             
             username = form.get('username', '').strip()
@@ -82,12 +56,12 @@ class AdminRoutes:
                 return RedirectResponse(f"{prefix}/users/create?error=password_weak", status_code=303)
             
             # Check if user exists
-            if self.auth.user_repo.get_by_username(username):
+            if auth_manager.user_repo.get_by_username(username):
                 return RedirectResponse(f"{prefix}/users/create?error=username_taken", status_code=303)
             
             try:
                 # Create user
-                user = self.auth.user_repo.create(
+                user = auth_manager.user_repo.create(
                     username=username,
                     email=email,
                     password=password,
@@ -96,7 +70,7 @@ class AdminRoutes:
                 
                 # Update active status if needed
                 if not active:
-                    self.auth.user_repo.update(user.id, active=False)
+                    auth_manager.user_repo.update(user.id, active=False)
                 
                 return RedirectResponse(f"{prefix}/users?success=created", status_code=303)
                 
@@ -104,25 +78,9 @@ class AdminRoutes:
                 print(f"Error creating user: {e}")
                 return RedirectResponse(f"{prefix}/users/create?error=creation_failed", status_code=303)
         
-        # Edit user form
-        @rt(f"{prefix}/users/edit", methods=["GET"])
-        @self.auth.require_admin()
-        def admin_user_edit_form(req, id: int):
-            user = self.auth.user_repo.get_by_id(id)
-            if not user:
-                return RedirectResponse(f"{prefix}/users?error=user_not_found", status_code=303)
-            
-            error = req.query_params.get('error')
-            return Title(f"Edit User: {user.username}"), Container(
-                self._create_edit_user_form(user, action=f"{prefix}/users/edit", error=error, prefix=prefix),
-                cls=ContainerT.lg
-            )
-        
-        # Edit user submission
-        @rt(f"{prefix}/users/edit", methods=["POST"])
-        @self.auth.require_admin()
-        async def admin_user_edit_submit(req, id: int):
-            user = self.auth.user_repo.get_by_id(id)
+        async def handle_user_edit(req, id: int):
+            """Handle user edit form submission"""
+            user = auth_manager.user_repo.get_by_id(id)
             if not user:
                 return RedirectResponse(f"{prefix}/users?error=user_not_found", status_code=303)
             
@@ -154,7 +112,7 @@ class AdminRoutes:
                     update_fields['password'] = new_password
                 
                 # Update user
-                success = self.auth.user_repo.update(id, **update_fields)
+                success = auth_manager.user_repo.update(id, **update_fields)
                 
                 if success:
                     return RedirectResponse(f"{prefix}/users?success=updated", status_code=303)
@@ -165,7 +123,92 @@ class AdminRoutes:
                 print(f"Error updating user: {e}")
                 return RedirectResponse(f"{prefix}/users/edit?id={id}&error=update_failed", status_code=303)
         
-        # Delete user confirmation
+        async def handle_user_delete(req, id: int):
+            """Handle user deletion confirmation"""
+            current_user = req.scope['user']
+            
+            # Prevent self-deletion
+            if current_user.id == id:
+                return RedirectResponse(f"{prefix}/users?error=cannot_delete_self", status_code=303)
+            
+            try:
+                # Delete user
+                success = auth_manager.user_repo.delete(id)
+                
+                if success:
+                    return RedirectResponse(f"{prefix}/users?success=deleted", status_code=303)
+                else:
+                    return RedirectResponse(f"{prefix}/users?error=delete_failed", status_code=303)
+                    
+            except Exception as e:
+                print(f"Error deleting user: {e}")
+                return RedirectResponse(f"{prefix}/users?error=delete_failed", status_code=303)
+        
+        # === ROUTE REGISTRATIONS ===
+        
+        # User list with pagination and search - COMPLETE IMPLEMENTATION
+        @rt(f"{prefix}/users")
+        @self.auth.require_admin()
+        def admin_users_list(req):
+            # Get query parameters
+            page = int(req.query_params.get('page', 1))
+            per_page = int(req.query_params.get('per_page', 10))
+            search = req.query_params.get('search', '')
+            role_filter = req.query_params.get('role', '')
+            status_filter = req.query_params.get('status', '')
+            
+            # Get all users
+            all_users = self.auth.user_repo.list_all()
+            
+            # Apply filters
+            filtered_users = self._filter_users(all_users, search, role_filter, status_filter)
+            
+            # Calculate pagination
+            total_users = len(filtered_users)
+            total_pages = math.ceil(total_users / per_page)
+            start = (page - 1) * per_page
+            end = start + per_page
+            users_page = filtered_users[start:end]
+            
+            return Title("User Management"), Container(
+                self._create_user_list_header(),
+                self._create_filters_section(search, role_filter, status_filter, prefix),
+                self._create_users_table(users_page, prefix),
+                self._create_pagination(page, total_pages, req.url.path, req.query_params),
+                cls=ContainerT.xl
+            )
+        
+        # Create new user form (GET)
+        @rt(f"{prefix}/users/create", methods=["GET"])
+        @self.auth.require_admin()
+        def admin_user_create_form(req):
+            error = req.query_params.get('error')
+            return Title("Create User"), Container(
+                self._create_user_form(action=f"{prefix}/users/create", error=error, prefix=prefix),
+                cls=ContainerT.lg
+            )
+        
+        # Create new user submission (POST) - using external async handler
+        rt(f"{prefix}/users/create", methods=["POST"])(handle_user_create)
+        
+        # Edit user form (GET)
+        @rt(f"{prefix}/users/edit", methods=["GET"])
+        @self.auth.require_admin()
+        def admin_user_edit_form(req, id: int):
+            user = self.auth.user_repo.get_by_id(id)
+            if not user:
+                return RedirectResponse(f"{prefix}/users?error=user_not_found", status_code=303)
+            
+            error = req.query_params.get('error')
+            return Title(f"Edit User: {user.username}"), Container(
+                self._create_edit_user_form(user, action=f"{prefix}/users/edit", error=error, prefix=prefix),
+                cls=ContainerT.lg
+            )
+        
+        # Edit user submission (POST) - using external async handler
+        rt(f"{prefix}/users/edit", methods=["POST"])(handle_user_edit)
+        
+        # Delete user confirmation (GET)
         @rt(f"{prefix}/users/delete", methods=["GET"])
         @self.auth.require_admin()
         def admin_user_delete_confirm(req, id: int):
@@ -184,41 +227,24 @@ class AdminRoutes:
                 cls=ContainerT.sm
             )
         
-        # Delete user submission
-        @rt(f"{prefix}/users/delete", methods=["POST"])
-        @self.auth.require_admin()
-        async def admin_user_delete_submit(req, id: int):
-            current_user = req.scope['user']
-            
-            # Prevent self-deletion
-            if current_user.id == id:
-                return RedirectResponse(f"{prefix}/users?error=cannot_delete_self", status_code=303)
-            
-            try:
-                # Delete user
-                success = self.auth.user_repo.delete(id)
-                
-                if success:
-                    return RedirectResponse(f"{prefix}/users?success=deleted", status_code=303)
-                else:
-                    return RedirectResponse(f"{prefix}/users?error=delete_failed", status_code=303)
-                    
-            except Exception as e:
-                print(f"Error deleting user: {e}")
-                return RedirectResponse(f"{prefix}/users?error=delete_failed", status_code=303)
+        # Delete user submission (POST) - using external async handler  
+        rt(f"{prefix}/users/delete", methods=["POST"])(handle_user_delete)
         
+        # Store route references
         self.routes.update({
             'admin_users_list': admin_users_list,
             'admin_user_create_form': admin_user_create_form,
-            'admin_user_create_submit': admin_user_create_submit,
+            'admin_user_create_submit': handle_user_create,
             'admin_user_edit_form': admin_user_edit_form,
-            'admin_user_edit_submit': admin_user_edit_submit,
+            'admin_user_edit_submit': handle_user_edit,
             'admin_user_delete_confirm': admin_user_delete_confirm,
-            'admin_user_delete_submit': admin_user_delete_submit
+            'admin_user_delete_submit': handle_user_delete
         })
         
         return self.routes
-    
+
+
+
     # Helper methods for UI components
     def _create_user_list_header(self):
         """Create header for user list page"""
@@ -476,6 +502,7 @@ class AdminRoutes:
                 create_message_alert(error_messages.get(error), "error") if error else None,
                 
                 Form(
+                    Input(type="hidden", name="id", value=user.id),
                     Grid(
                         LabelInput(
                             "Username",
@@ -558,7 +585,7 @@ class AdminRoutes:
                     ),
                     
                     method="post",
-                    action=action
+                    action=f"{action}?id={user.id}"
                 )
             )
         )
@@ -588,7 +615,7 @@ class AdminRoutes:
                         Button("Delete User", type="submit", cls="bg-destructive text-destructive-foreground hover:bg-destructive/90")
                     ),
                     method="post",
-                    action=f"{prefix}/users/delete",
+                    action=f"{prefix}/users/delete?id={user.id}",
                     cls="mt-6"
                 )
             )
