@@ -80,8 +80,8 @@ auth.register_routes(app, include_admin=True)
 | 📊 **Admin Dashboard** | `/auth/admin` | User statistics and quick actions |
 | 👥 **User Management** | `/auth/admin/users` | List, search, filter all users |
 | ➕ **Create Users** | `/auth/admin/users/create` | Add users with role assignment |
-| ✏️ **Edit Users** | `/auth/admin/users/{id}/edit` | Modify details, roles, status |
-| 🗑️ **Delete Users** | `/auth/admin/users/{id}/delete` | Remove users (with protection) |
+| ✏️ **Edit Users** | `/auth/admin/users/edit?id={id}` | Modify details, roles, status |
+| 🗑️ **Delete Users** | `/auth/admin/users/delete?id={id}` | Remove users (with protection) |
 
 ### Admin Interface Features
 
@@ -203,8 +203,8 @@ auth.create_beforeware()                             # Create middleware
 - `GET /auth/admin` - Admin dashboard
 - `GET /auth/admin/users` - User management
 - `GET/POST /auth/admin/users/create` - Create user
-- `GET/POST /auth/admin/users/{id}/edit` - Edit user
-- `GET/POST /auth/admin/users/{id}/delete` - Delete user
+- `GET/POST /auth/admin/users/edit?id={id}` - Edit user
+- `GET/POST /auth/admin/users/delete?id={id}` - Delete user
 
 ## 📁 Examples
 
