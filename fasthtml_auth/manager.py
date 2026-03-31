@@ -1,5 +1,8 @@
 from fasthtml.common import *
 from monsterui.all import *
+from fasthtml.oauth import GoogleAppClient
+from dotenv import load_dotenv
+import os
 from dataclasses import dataclass
 from .middleware import AuthBeforeware
 from .database import AuthDatabase
@@ -22,6 +25,7 @@ class AuthManager:
     """
     def __init__(self, db_path="data/app.db", config=None):
         self.config = config or {}
+        self.google_client = None
         self.auth_db = AuthDatabase(db_path)
         self.middleware = AuthBeforeware(self, self.config)
         self.db=None
@@ -45,6 +49,21 @@ class AuthManager:
         print(f"Are they the same class? {type(admin) is User}")    
         
         return self.db
+
+    def setup_oauth(self, app, redirect_url: str):
+        """Set up Google OAuth - call this before register_routes"""
+
+        load_dotenv()
+    
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+    
+        if not client_id or not client_secret:
+            raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in .env")
+    
+        self.google_client = GoogleAppClient(client_id, client_secret)
+
+        self.middleware.skip_patterns.extend(['/auth/google/login', '/auth/google/callback'])
     
     def create_beforeware(self, additional_public_paths=None):
         return self.middleware.create_beforeware(additional_public_paths)

@@ -14,6 +14,7 @@ class User:
     created_at: str = ""
     last_login: str = ""
     active: bool = True
+    auth_provider: str = "local"
     
     # Define primary key for fastlite
     pk = "id"

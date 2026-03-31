@@ -25,7 +25,7 @@ class AuthDatabase:
         if not dataclasses.is_dataclass(User):
             raise Exception("User is not a proper dataclass!")
         
-        self.users = self.db.create(User, pk=User.pk)
+        self.users = self.db.create(User, pk=User.pk, transform=True)
 
         return self.db
     

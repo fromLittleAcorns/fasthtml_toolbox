@@ -31,6 +31,9 @@ class AuthRoutes:
         
         if self.auth.config.get('allow_password_reset'):
             self._register_password_reset_routes(rt, prefix)
+
+        if self.auth.google_client:
+            self._register_oauth_routes(rt, prefix, self.auth.config.get('oauth_redirect_url'))
         
         # Register admin routes if requested
         if include_admin:
@@ -165,7 +168,8 @@ class AuthRoutes:
             # Get redirect destination from query params
             redirect_to = req.query_params.get('redirect_to', '/')
             return Title("Login"), Container(
-                create_login_form(error=error, action=f"{prefix}/login", redirect_to=redirect_to)
+                create_login_form(error=error, action=f"{prefix}/login", redirect_to=redirect_to,
+                oauth_enabled=self.auth.google_client is not None)
             )
         self.routes['login_page'] = login_page
         
@@ -297,7 +301,27 @@ class AuthRoutes:
             
             self.routes['forgot_password'] = forgot_page
             self.routes['forgot_submit'] = forgot_submit
+
+    def _register_oauth_routes(self, rt, prefix, redirect_url):
+        """Register Google OAuth routes"""
         
+        @rt(f'{prefix}/google/login')
+        def google_login(session):
+            login_link = self.auth.google_client.login_link(redirect_url)
+            return RedirectResponse(login_link)
+
+        @rt(f'{prefix}/google/callback')
+        def google_callback(session, code: str):
+            info = self.auth.google_client.retr_info(code, redirect_url)
+            email = info.get('email')
+            name = info.get('name', email.split('@')[0])
+            user = self.auth.user_repo.get_by_email(email)
+            if not user:
+                user = self.auth.user_repo.create_oauth_user(username=name, email=email)
+            session['user_id'] = user.id
+            session['auth'] = user.username
+            return RedirectResponse('/')
+
     def _register_profile_route(self, rt, prefix):
         # Register route to a profile form
         @rt(f"{prefix}/profile", methods=["GET"])

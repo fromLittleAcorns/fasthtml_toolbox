@@ -2,7 +2,12 @@
 
 from fasthtml.common import *
 from monsterui.all import *
-from fasthtml_auth import AuthManager
+from dotenv import load_dotenv
+load_dotenv('../.env')
+import sys
+sys.path.insert(0, '..')
+from fasthtml_auth.manager import AuthManager
+oauth_enabled = True if os.getenv('OAUTH_REDIRECT_URL', None) is not None else False
 
 # Initialize auth system with admin interface enabled
 auth = AuthManager(
@@ -12,6 +17,7 @@ auth = AuthManager(
         'public_paths': ['/about', '/pricing'],
         'allow_registration': True,
         'allow_password_reset': False,
+        'oauth_redirect_url': os.getenv('OAUTH_REDIRECT_URL' if oauth_enabled else '')
     }
 )
 
@@ -29,6 +35,10 @@ app = FastHTML(
     secret_key='change-me-in-production',
     hdrs=Theme.blue.headers()
 )
+
+# Setup oauth before registering routes
+if oauth_enabled:
+    auth.setup_oauth(app, auth.config['oauth_redirect_url'])
 
 # Register auth routes WITH ADMIN INTERFACE
 routes = auth.register_routes(app, include_admin=True)  # ← Enable admin interface
@@ -221,7 +231,7 @@ def pricing():
 if __name__ == "__main__":
     print("\n🚀 Starting FastHTML app with admin interface...")
     print("📝 Default admin: username='admin', password='admin123'")
-    print("🌐 Visit: http://localhost:5001")
+    print("🌐 Visit: http://localhost:8000")
     print("\n📋 Available routes:")
     print("   • / (dashboard)")
     print("   • /auth/login")
@@ -255,5 +265,9 @@ if __name__ == "__main__":
             role='user'
         )
         print("   ✓ Created user account")
+
+    if oauth_enabled:
+        auth.setup_oauth(app, redirect_url=auth.config['oauth_redirect_url'])
+        print("✓ oauth initialized")
     
-    serve(port=5001)
+    serve(port=8000)

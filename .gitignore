@@ -46,6 +46,8 @@ cover/
 
 # Virtual environments
 .env
+.env_oauth
+.env_no_oauth
 .venv
 env/
 venv/

@@ -21,8 +21,9 @@ class UserRepository:
             role=user_dict.get('role', 'user'),
             created_at=user_dict.get('created_at', ''),
             last_login=user_dict.get('last_login', ''),
-            active=user_dict.get('active', True)
-        )        
+            active=user_dict.get('active', True),
+            auth_provider=user_dict.get('auth_provider', 'local')
+        )
     
     def get_by_username(self, username: str) -> Optional[User]:
         """Get user by username using parameterized query"""
@@ -41,7 +42,24 @@ class UserRepository:
         except Exception as e:
             print(f"Error in get_by_username: {e}")
             return None
-        
+
+    def get_by_email(self, email: str) -> Optional[User]:
+        try:
+            user_found = self.users("email=?", (email,))
+            if len(user_found) == 1:
+                if isinstance(user_found[0], User):
+                    return user_found[0]
+                else:
+                    return self._dict_to_user(user_found[0])
+                return user_found[0]  # Return the single user object
+            elif len(user_found) == 0:
+                return None
+            else:
+                raise Exception(f"Multiple users found with email: {email}")
+        except Exception as e:
+            print(f"Error in get_by_email: {e}")
+            return None
+
     def get_by_id(self, user_id: int) -> Optional[User]:
         """Get user by ID"""
         try:
@@ -62,7 +80,26 @@ class UserRepository:
             role=role,
             active=True,
             created_at="",
-            last_login=""
+            last_login="",
+            auth_provider="local"
+        )
+        inserted_user = self.users.insert(user)
+        if isinstance(inserted_user, dict):
+            return self._dict_to_user(inserted_user)
+        else:
+            return inserted_user
+
+    def create_oauth_user(self, username: str, email: str, role: str='user', provider: str = "google") -> User:
+        """Create new user via oauth.  Note that the dates will be updated by the class -_post_init__ method """
+        user = User(
+            username=username,
+            email=email,
+            password=None,  # Using oauth
+            role=role,
+            active=True,
+            created_at="",
+            last_login="",
+            auth_provider=provider
         )
         inserted_user = self.users.insert(user)
         if isinstance(inserted_user, dict):
