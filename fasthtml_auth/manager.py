@@ -57,6 +57,7 @@ class AuthManager:
     
         client_id = os.getenv('GOOGLE_CLIENT_ID')
         client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        self.config['oauth_redirect_url'] = redirect_url
     
         if not client_id or not client_secret:
             raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in .env")
