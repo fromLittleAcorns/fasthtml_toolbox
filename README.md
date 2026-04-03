@@ -296,8 +296,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📝 Changelog
 
-### v0.0.1 (Current release)
-- �~\ Bug fix adding a config variable to AuthManager class
+### v0.3.2 (Current release)
+- ✅ Bug fix adding a config variable to AuthManager class
+- ✅ Updated github actions versions
 
 ### v0.3.0 (Current Release)
 - ✅ Google OAuth integration
