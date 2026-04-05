@@ -12,6 +12,8 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/", oauth_e
         error_message = "Your account has been deactivated. Please contact support."
     elif error == 'system':
         error_message = "System error. Please try again."
+    elif error == 'no_account':
+        error_message = "No account exists for this email. Please contact your administrator."
     
     return DivCentered(
         Card(
