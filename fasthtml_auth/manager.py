@@ -54,7 +54,7 @@ class AuthManager:
         """Set up Google OAuth - call this before register_routes"""
 
         # Define whether to allow new user creation by oauth
-        sel.config['oauth_create_users'] = True if allow_oauth_user_create else False
+        self.config['oauth_create_users'] = True if allow_oauth_user_create else False
 
         load_dotenv()
     

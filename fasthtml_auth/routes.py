@@ -317,10 +317,10 @@ class AuthRoutes:
             name = info.get('name', email.split('@')[0])
             user = self.auth.user_repo.get_by_email(email)
             if not user:
-            if self.auth.config.get('oauth_create_users', True):
-                user = self.auth.user_repo.create_oauth_user(username=name, email=email)
-            else:
-                return RedirectResponse(f'{prefix}/login?error=no_account')
+                if self.auth.config.get('oauth_create_users', True):
+                    user = self.auth.user_repo.create_oauth_user(username=name, email=email)
+                else:
+                    return RedirectResponse(f'{prefix}/login?error=no_account')
             session['user_id'] = user.id
             session['auth'] = user.username
             return RedirectResponse('/')

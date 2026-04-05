@@ -113,7 +113,8 @@ This real-world example shows:
 
 ```python
 config = {
-    'allow_registration': True,              # Enable user registration
+    'allow_registration': True,              # Enable local user registration form
+    'oauth_create_users': True,              # Allow OAuth to auto-create new accounts (set False for admin-only signups)
     'public_paths': ['/about', '/api'],      # Routes that skip authentication  
     'login_path': '/auth/login',             # Custom login URL
     'oauth_redirect_url': 'https://yourdomain.com/auth/google/callback',  # Google OAuth callback URL
@@ -152,7 +153,21 @@ app = FastHTML(before=beforeware, ...)
 auth.register_routes(app)
 ```
 
-OAuth users are stored in the same `users` table with `auth_provider='google'` and no password. They are automatically created on first login with basic `user` role.
+OAuth users are stored in the same `users` table with `auth_provider='google'` and no password. They are automatically created on first login with basic `user` role (default behaviour).
+
+### Admin-controlled OAuth access
+
+If you want to restrict who can log in via OAuth (e.g. no open self-registration), set `oauth_create_users` to `False`:
+
+```python
+config = {
+    'allow_registration': False,   # Disable local signup form
+    'oauth_create_users': False,   # Disable OAuth auto account creation
+    ...
+}
+```
+
+With this setup, an admin pre-creates user accounts via the admin interface. Users whose email matches a pre-existing account can sign in with either their local password **or** Google OAuth — their role and password are never modified by an OAuth login.
 
 ---
 
@@ -296,11 +311,16 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📝 Changelog
 
-### v0.3.2 (Current release)
+### v0.3.3 (Current release)
+- ✅ New `oauth_create_users` config flag to restrict OAuth logins to pre-registered accounts
+- ✅ Users can now log in via local password or Google OAuth interchangeably — roles and passwords unaffected by OAuth login
+- ✅ Clear error message shown when an unrecognised email attempts OAuth login
+
+### v0.3.2
 - ✅ Bug fix adding a config variable to AuthManager class
 - ✅ Updated github actions versions
 
-### v0.3.0 (Current Release)
+### v0.3.0
 - ✅ Google OAuth integration
 - ✅ `auth_provider` field to distinguish login method
 - ✅ OAuth routes automatically added to public paths

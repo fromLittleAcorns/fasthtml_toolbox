@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-04-05
+
+### Added
+- New `oauth_create_users` config flag (default: `True`) to control whether OAuth logins can auto-create new accounts
+- When `oauth_create_users` is `False`, OAuth login is restricted to users pre-registered by an admin — unrecognised emails are redirected to the login page with a clear error message
+- New `no_account` error message on the login form: "No account exists for this email. Please contact your administrator."
+
+### Security
+- Confirmed that OAuth login does not modify an existing user's password, role, or any other fields — local and OAuth login can coexist safely for the same account
+
+### Notes
+- `allow_registration` (controls local signup form) and `oauth_create_users` (controls OAuth auto-creation) are independent flags and can be combined as needed
+
 ## [0.1.2] - 2025-09-03
 
 ### Added
