@@ -1,5 +1,5 @@
 # auth/database.py
-from fasthtml.common import database
+from fastlite import database
 from pathlib import Path
 
 class AuthDatabase:
