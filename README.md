@@ -16,7 +16,8 @@ pip install fasthtml-auth
 ## ⭐ Key Features
 
 - 🔐 **Complete Authentication** - Login, logout, registration with secure bcrypt hashing
-- 👑 **Built-in Admin Interface** - Full user management dashboard (NEW!)
+- 👑 **Built-in Admin Interface** - Full user management dashboard
+- 🌐 **Google OAuth** - Allow users to sign in with their Google account
 - 🎨 **Beautiful UI** - Responsive MonsterUI components, zero custom CSS needed
 - 🛡️ **Role-Based Access** - User, Manager, Admin roles with decorators
 - 📱 **Mobile Ready** - Works perfectly on all devices
@@ -112,13 +113,63 @@ This real-world example shows:
 
 ```python
 config = {
-    'allow_registration': True,              # Enable user registration
+    'allow_registration': True,              # Enable local user registration form
+    'oauth_create_users': True,              # Allow OAuth to auto-create new accounts (set False for admin-only signups)
     'public_paths': ['/about', '/api'],      # Routes that skip authentication  
     'login_path': '/auth/login',             # Custom login URL
+    'oauth_redirect_url': 'https://yourdomain.com/auth/google/callback',  # Google OAuth callback URL
 }
 
 auth = AuthManager(db_path="data/app.db", config=config)
 ```
+
+## 🌐 Google OAuth
+
+FastHTML-Auth supports Google OAuth as an alternative login method. When enabled, a "Sign in with Google" button appears automatically on the login form.
+
+### Setup
+
+1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com):
+   - Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+   - Add your callback URL as an authorised redirect URI: `https://yourdomain.com/auth/google/callback`
+
+2. Add credentials to your `.env` file:
+```
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+OAUTH_REDIRECT_URL=https://yourdomain.com/auth/google/callback
+```
+
+3. Call `setup_oauth()` before `register_routes()`:
+```python
+auth = AuthManager(db_path="data/app.db", config={
+    ...
+    'oauth_redirect_url': os.getenv('OAUTH_REDIRECT_URL')
+})
+db = auth.initialize()
+auth.setup_oauth()                  # Load credentials and enable OAuth
+beforeware = auth.create_beforeware()
+app = FastHTML(before=beforeware, ...)
+auth.register_routes(app)
+```
+
+OAuth users are stored in the same `users` table with `auth_provider='google'` and no password. They are automatically created on first login with basic `user` role (default behaviour).
+
+### Admin-controlled OAuth access
+
+If you want to restrict who can log in via OAuth (e.g. no open self-registration), set `oauth_create_users` to `False`:
+
+```python
+config = {
+    'allow_registration': False,   # Disable local signup form
+    'oauth_create_users': False,   # Disable OAuth auto account creation
+    ...
+}
+```
+
+With this setup, an admin pre-creates user accounts via the admin interface. Users whose email matches a pre-existing account can sign in with either their local password **or** Google OAuth — their role and password are never modified by an OAuth login.
+
+---
 
 ## 🔐 Role-Based Access Control
 
@@ -155,13 +206,14 @@ def dashboard(req):
 In protected routes, access user data via `req.scope['user']`:
 
 ```python
-user.id          # Unique user ID  
-user.username    # Username
-user.email       # Email address
-user.role        # 'user', 'manager', or 'admin'
-user.active      # Boolean - account status
-user.created_at  # Account creation timestamp
-user.last_login  # Last login timestamp
+user.id             # Unique user ID  
+user.username       # Username
+user.email          # Email address
+user.role           # 'user', 'manager', or 'admin'
+user.active         # Boolean - account status
+user.created_at     # Account creation timestamp
+user.last_login     # Last login timestamp
+user.auth_provider  # 'local' for password login, 'google' for OAuth
 ```
 
 ## 🎨 Styling & Themes
@@ -184,6 +236,7 @@ All forms include professional styling, validation, error handling, and mobile o
 ```python
 auth = AuthManager(db_path="data/app.db", config={})
 auth.initialize()                                    # Set up database
+auth.setup_oauth()                                   # Enable Google OAuth (optional)
 auth.register_routes(app, include_admin=True)        # Add all routes
 auth.create_beforeware()                             # Create middleware
 
@@ -206,6 +259,10 @@ auth.create_beforeware()                             # Create middleware
 - `GET/POST /auth/admin/users/edit?id={id}` - Edit user
 - `GET/POST /auth/admin/users/delete?id={id}` - Delete user
 
+**OAuth Routes** (when `setup_oauth()` is called):
+- `GET /auth/google/login` - Redirect to Google sign-in
+- `GET /auth/google/callback` - Handle Google OAuth callback
+
 ## 📁 Examples
 
 For complete examples, see the `/examples` directory:
@@ -217,6 +274,7 @@ For complete examples, see the `/examples` directory:
 ## 🔒 Security Features
 
 - **Bcrypt password hashing** - Industry standard security
+- **Google OAuth** - Secure third-party authentication via Google
 - **Session management** - Secure session handling with FastHTML
 - **Remember me functionality** - Optional persistent sessions
 - **Role-based protection** - Automatic route access control
@@ -234,6 +292,7 @@ pip install fasthtml-auth
 - `monsterui>=1.0.20` - UI components  
 - `fastlite>=0.2.0` - Database ORM
 - `bcrypt>=4.0.0` - Password hashing
+- `python-dotenv>=1.0.0` - Environment variable management (required for OAuth)
 
 ## 🤝 Contributing
 
@@ -241,7 +300,7 @@ We welcome contributions! Areas for contribution:
 
 - Password reset functionality
 - Two-factor authentication  
-- OAuth integration (Google, GitHub)
+- Additional OAuth providers (GitHub, Microsoft, etc.)
 - Email verification
 - Bulk user operations
 - Custom user fields
@@ -252,7 +311,22 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📝 Changelog
 
-### v0.2.0 (Current Release)
+### v0.3.3 (Current release)
+- ✅ New `oauth_create_users` config flag to restrict OAuth logins to pre-registered accounts
+- ✅ Users can now log in via local password or Google OAuth interchangeably — roles and passwords unaffected by OAuth login
+- ✅ Clear error message shown when an unrecognised email attempts OAuth login
+
+### v0.3.2
+- ✅ Bug fix adding a config variable to AuthManager class
+- ✅ Updated github actions versions
+
+### v0.3.0
+- ✅ Google OAuth integration
+- ✅ `auth_provider` field to distinguish login method
+- ✅ OAuth routes automatically added to public paths
+- ✅ Login form automatically shows Google button when OAuth is enabled
+
+### v0.2.0
 - ✅ Built-in admin interface for user management
 - ✅ User CRUD operations with beautiful UI
 - ✅ Dashboard with user statistics

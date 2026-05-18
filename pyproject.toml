@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fasthtml-auth"
-version = "0.2.1"
+version = "0.3.4"
 description = "Complete authentication system for FastHTML applications with beautiful UI, role-based access control, and session management"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -33,7 +33,7 @@ classifiers = [
 keywords = ["fasthtml", "authentication", "web", "framework", "auth", "login", "session", "bcrypt", "monsterui", "fastlite"]
 requires-python = ">=3.8"
 dependencies = [
-    "python-fasthtml>=0.12.0",
+    "python-fasthtml>=0.14.1",
     "monsterui>=1.0.20",
     "fastlite>=0.2.0", 
     "bcrypt>=4.0.0",

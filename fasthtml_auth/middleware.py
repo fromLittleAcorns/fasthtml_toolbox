@@ -28,7 +28,8 @@ class AuthBeforeware:
 
     def create_beforeware(self, additional_public_paths=None):
         """Create beforeware for fastHTML"""
-        skip_patterns = self._build_skip_patterns(additional_paths=additional_public_paths)
+
+        self.skip_patterns = self._build_skip_patterns(additional_paths=additional_public_paths)
 
         # Create Beforeware authentication check function
         def auth_check(req, sess):
@@ -71,7 +72,7 @@ class AuthBeforeware:
             req.scope['user_is_admin'] = user.role == "admin"
 
         # Return configured Beforeware
-        return Beforeware(auth_check, skip=skip_patterns)
+        return Beforeware(auth_check, skip=self.skip_patterns)
 
 
     def _build_skip_patterns(self, additional_paths=None) -> list:

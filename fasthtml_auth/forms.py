@@ -3,7 +3,7 @@ from fasthtml.common import *
 from monsterui.all import *
 
 
-def create_login_form(error=None, action="/auth/login", redirect_to="/"):
+def create_login_form(error=None, action="/auth/login", redirect_to="/", oauth_enabled: bool=False):
     """Create login form component with consistent styling"""
     error_message = None
     if error == 'invalid':
@@ -12,6 +12,8 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/"):
         error_message = "Your account has been deactivated. Please contact support."
     elif error == 'system':
         error_message = "System error. Please try again."
+    elif error == 'no_account':
+        error_message = "No account exists for this email. Please contact your administrator."
     
     return DivCentered(
         Card(
@@ -50,13 +52,16 @@ def create_login_form(error=None, action="/auth/login", redirect_to="/"):
                     ),
                     
                     Button("Sign In", type="submit", cls=(ButtonT.primary, "w-full")),
-                    
-                    Div(
+                                        Div(
                         A("Forgot password?", href="/auth/forgot", 
                           cls="text-sm text-muted-foreground hover:underline"),
                         cls="text-center mt-4"
                     ),
-                    
+                    Div(Hr(), P("or", cls="text-center text-sm text-muted-foreground"), Hr(), 
+                        cls="flex items-center gap-2 my-2") if oauth_enabled else None,
+                    A("Sign in with Google", href="/auth/google/login", 
+                        cls=(ButtonT.secondary, "w-full text-center")) if oauth_enabled else None,
+
                     method="post",
                     action=action
                 )
